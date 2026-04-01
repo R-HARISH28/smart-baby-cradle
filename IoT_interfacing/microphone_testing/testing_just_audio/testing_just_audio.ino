@@ -37,18 +37,36 @@ void setup() {
   i2s_set_pin(I2S_PORT, &pin_config);
 }
 
+// void loop() {
+//   int32_t sample = 0;
+//   size_t bytesIn = 0;
+  
+//   // Read one chunk of audio from the microphone
+//   esp_err_t result = i2s_read(I2S_PORT, &sample, sizeof(sample), &bytesIn, portMAX_DELAY);
+
+//   if (result == ESP_OK && bytesIn > 0) {
+//     // Shift the 32-bit data down so it fits nicely on the graph
+//     sample >>= 14; 
+    
+//     // Print the raw sound wave number!
+//     Serial.println(sample);
+//   }
+// }
+
 void loop() {
   int32_t sample = 0;
   size_t bytesIn = 0;
   
-  // Read one chunk of audio from the microphone
+  // Read raw 32-bit data from I2S
   esp_err_t result = i2s_read(I2S_PORT, &sample, sizeof(sample), &bytesIn, portMAX_DELAY);
 
   if (result == ESP_OK && bytesIn > 0) {
-    // Shift the 32-bit data down so it fits nicely on the graph
-    sample >>= 14; 
-    
-    // Print the raw sound wave number!
+    // 1. Scale the raw 24-bit data inside the 32-bit variable
+    // Shifting by 11 or 12 usually brings the "voice" into the audible range
+    sample >>= 11; 
+
+    // 2. Print it out
     Serial.println(sample);
   }
 }
+
