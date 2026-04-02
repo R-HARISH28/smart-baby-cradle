@@ -70,3 +70,39 @@ void loop() {
   }
 }
 
+
+// 3 test
+// void loop() {
+//   int32_t sample = 0;
+//   size_t bytesIn = 0;
+  
+//   // Read raw data
+//   esp_err_t result = i2s_read(I2S_PORT, &sample, sizeof(sample), &bytesIn, portMAX_DELAY);
+
+//   if (result == ESP_OK && bytesIn > 0) {
+//     // 1. Convert to 24-bit signed (INMP441 is 24-bit)
+//     // We shift to remove the "empty" bits and bring the voice forward
+//     sample >>= 11; 
+
+//     // 2. Plotting
+//     // If you see a flat line, clap! It should jump significantly now.
+//     Serial.println(sample);
+//   }
+// }
+
+
+
+
+// 4 
+// void loop() {
+//   int32_t sample = 0;
+//   size_t bytesIn = 0;
+  
+//   // Read raw 32-bit data
+//   i2s_read(I2S_PORT, &sample, sizeof(sample), &bytesIn, portMAX_DELAY);
+
+//   if (bytesIn > 0) {
+//     // We print the raw number. If it is always 0 or -1, the wiring is broken.
+//     Serial.println(sample); 
+//   }
+// }
