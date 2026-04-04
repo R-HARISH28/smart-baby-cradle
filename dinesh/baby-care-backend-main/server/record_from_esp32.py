@@ -133,4 +133,6 @@ def save_wav(data):
     print(f"File saved as: {FILENAME}")
 
 if __name__ == "__main__":
-    record_with_debug()
+    record_with_debug() 
+
+    

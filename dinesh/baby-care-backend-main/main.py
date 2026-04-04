@@ -34,7 +34,7 @@ app.add_middleware(
 print("Loading TFLite model...")
 try:
     # Make sure 'cry_detection_model.tflite' is in the same folder as main.py
-    interpreter = tf.lite.Interpreter(model_path="cry_detection_model.tflite")
+    interpreter = tf.lite.Interpreter(model_path="baby_cry_v2_pro.tflite")
     interpreter.allocate_tensors()
 
     input_details = interpreter.get_input_details()
