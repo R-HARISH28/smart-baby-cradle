@@ -1,82 +1,3 @@
-// // src/components/History.tsx
-// import { useEffect, useState } from 'react';
-// import { Clock, TrendingUp, Activity } from 'lucide-react';
-// import { collection, query, orderBy, limit, onSnapshot } from 'firebase/firestore';
-// import { db } from '../lib/firebase';
-// import type { CryEvent, BabyStatus } from '../types/database';
-
-// export default function History() {
-//   const [events, setEvents] = useState<CryEvent[]>([]);
-//   const [isLoading, setIsLoading] = useState(true);
-//   const [filter, setFilter] = useState<BabyStatus | 'all'>('all');
-
-//   useEffect(() => {
-//     const eventsQuery = query(
-//       collection(db, 'cry_events'),
-//       orderBy('detected_at', 'desc'),
-//       limit(100)
-//     );
-
-//     const unsubscribe = onSnapshot(eventsQuery, (querySnapshot) => {
-//       const fetchedEvents = querySnapshot.docs.map(doc => ({
-//         id: doc.id,
-//         ...doc.data()
-//       })) as CryEvent[];
-      
-//       setEvents(fetchedEvents);
-//       setIsLoading(false);
-//     });
-
-//     return () => unsubscribe();
-//   }, []);
-
-//   const filteredEvents = filter === 'all'
-//     ? events
-//     : events.filter((e) => e.status === filter);
-
-//   const getStatusBadge = (status: BabyStatus) => {
-//     switch (status) {
-//       case 'sleeping': return 'bg-blue-100 text-blue-800 border-blue-200';
-//       case 'crying': return 'bg-red-100 text-red-800 border-red-200';
-//       case 'noise_detected': return 'bg-yellow-100 text-yellow-800 border-yellow-200';
-//     }
-//   };
-
-//   const getIntensityColor = (intensity: number) => {
-//     if (intensity >= 70) return 'text-red-600 font-bold';
-//     if (intensity >= 40) return 'text-yellow-600 font-semibold';
-//     return 'text-green-600';
-//   };
-
-//   const formatDateTime = (dateString: string) => {
-//     const date = new Date(dateString);
-//     return { date: date.toLocaleDateString(), time: date.toLocaleTimeString() };
-//   };
-
-//   const stats = {
-//     total: events.length,
-//     crying: events.filter((e) => e.status === 'crying').length,
-//     avgIntensity: events.length > 0
-//       ? Math.round(events.reduce((sum, e) => sum + e.intensity, 0) / events.length)
-//       : 0,
-//   };
-
-//   if (isLoading) {
-//     return (
-//       <div className="flex items-center justify-center min-h-screen">
-//         <div className="text-lg text-gray-600">Loading history...</div>
-//       </div>
-//     );
-//   }
-
-//   return (
-//       // ... [Keep the exact same JSX return block as your original History.tsx]
-//       <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50 p-4 md:p-8">
-//          {/* the rest of the UI remains completely unchanged */}
-//       </div>
-//   );
-// }
-
 // src/components/History.tsx
 import { useEffect, useState } from 'react';
 import { Clock, Activity, Calendar, AlertCircle, Timer, Filter } from 'lucide-react';
@@ -84,8 +5,129 @@ import { collection, query, orderBy, limit, onSnapshot, where } from 'firebase/f
 import { db } from '../lib/firebase';
 import type { CryEvent, BabyStatus } from '../types/database';
 
+// ─── SAD WEEPING BABY SVG WITH OVERFLOWING TEARS & QUIVERING POUT ─────────────
+const AnimatedCryingBaby = () => (
+  <div className="relative w-40 h-40 mx-auto my-6 drop-shadow-lg">
+    <style>{`
+      /* Gentle weeping/sniffling animation for the head */
+      @keyframes gentleWeep {
+        0%, 100% { transform: translateY(0px) rotate(0deg); }
+        50% { transform: translateY(3px) rotate(-1deg); }
+        75% { transform: translateY(1px) rotate(1deg); }
+      }
+
+      /* Subtle, rapid quivering for the closed sad mouth */
+      @keyframes lipQuiver {
+        0%, 100% { transform: translateY(0); }
+        50% { transform: translateY(1.5px); }
+      }
+
+      /* Tears overflow from the EYES (x=34/86), trace the cheeks outward, then drop */
+      @keyframes tearStreamLeftOutward {
+        0% { transform: translate(34px, 52px) scale(0); opacity: 0; }
+        10% { transform: translate(34px, 52px) scale(1); opacity: 1; } 
+        25% { transform: translate(24px, 68px) scale(1); opacity: 1; } 
+        40% { transform: translate(20px, 80px) scale(1); opacity: 1; } 
+        85% { transform: translate(20px, 108px) scale(1); opacity: 1; } 
+        90% { transform: translate(20px, 110px) scaleX(2) scaleY(0.1); opacity: 0; } 
+        100% { transform: translate(20px, 110px) scale(0); opacity: 0; }
+      }
+      
+      @keyframes tearStreamRightOutward {
+        0% { transform: translate(86px, 52px) scale(0); opacity: 0; }
+        10% { transform: translate(86px, 52px) scale(1); opacity: 1; } 
+        25% { transform: translate(96px, 68px) scale(1); opacity: 1; } 
+        40% { transform: translate(100px, 80px) scale(1); opacity: 1; } 
+        85% { transform: translate(100px, 108px) scale(1); opacity: 1; } 
+        90% { transform: translate(100px, 110px) scaleX(2) scaleY(0.1); opacity: 0; } 
+        100% { transform: translate(100px, 110px) scale(0); opacity: 0; }
+      }
+
+      /* Puddling tears in the eyes */
+      @keyframes tearPuddle {
+        0%, 100% { transform: scaleY(1); opacity: 0.6; }
+        50% { transform: scaleY(1.15); opacity: 0.9; }
+      }
+
+      .weeping-head {
+        animation: gentleWeep 1.8s infinite ease-in-out;
+        transform-origin: 60px 60px;
+      }
+      
+      .quivering-mouth {
+        animation: lipQuiver 0.3s infinite ease-in-out;
+        transform-origin: 60px 75px;
+      }
+
+      .tear-puddle { 
+        animation: tearPuddle 2s infinite ease-in-out; 
+        transform-origin: 50% 50%; 
+      }
+      
+      /* Staggered outward tear drops */
+      .tear-l-1 { animation: tearStreamLeftOutward 2.5s infinite ease-in; }
+      .tear-l-2 { animation: tearStreamLeftOutward 2.5s infinite ease-in 1.25s; }
+      .tear-r-1 { animation: tearStreamRightOutward 2.5s infinite ease-in 0.6s; }
+      .tear-r-2 { animation: tearStreamRightOutward 2.5s infinite ease-in 1.85s; }
+    `}</style>
+    
+    <svg viewBox="0 0 120 120" className="w-full h-full overflow-visible" xmlns="http://www.w3.org/2000/svg">
+      
+      {/* Ground shadow */}
+      <ellipse cx="60" cy="110" rx="38" ry="4" fill="#cbd5e1" opacity="0.5" />
+
+      {/* Falling Tear Drops (Placed behind the head so they trace the jawline smoothly) */}
+      <g fill="#60a5fa">
+        <path className="tear-l-1" d="M 0 0 C 3 4 5 7 3 9 C 0 12 -3 12 -3 9 C -5 7 -3 4 0 0 Z" />
+        <path className="tear-l-2" d="M 0 0 C 3 4 5 7 3 9 C 0 12 -3 12 -3 9 C -5 7 -3 4 0 0 Z" />
+        <path className="tear-r-1" d="M 0 0 C 3 4 5 7 3 9 C 0 12 -3 12 -3 9 C -5 7 -3 4 0 0 Z" />
+        <path className="tear-r-2" d="M 0 0 C 3 4 5 7 3 9 C 0 12 -3 12 -3 9 C -5 7 -3 4 0 0 Z" />
+      </g>
+
+      <g className="weeping-head">
+        {/* Head (Normal peach skin tone) */}
+        <circle cx="60" cy="60" r="45" fill="#ffe4e1" /> 
+        
+        {/* Ears */}
+        <circle cx="15" cy="60" r="8" fill="#ffbfa8" />
+        <circle cx="105" cy="60" r="8" fill="#ffbfa8" />
+        
+        {/* Hair Tufts */}
+        <path d="M 50 15 Q 60 0 70 15" fill="none" stroke="#2a1f1d" strokeWidth="3" strokeLinecap="round"/>
+        <path d="M 55 12 Q 65 -5 75 12" fill="none" stroke="#2a1f1d" strokeWidth="3" strokeLinecap="round"/>
+        
+        {/* Sad Puppy-Dog Eyebrows */}
+        <path d="M 28 36 Q 38 28 46 31" fill="none" stroke="#2a1f1d" strokeWidth="2.5" strokeLinecap="round" />
+        <path d="M 92 36 Q 82 28 74 31" fill="none" stroke="#2a1f1d" strokeWidth="2.5" strokeLinecap="round" />
+
+        {/* Huge Sad Watery Anime Eyes */}
+        {/* Left Eye */}
+        <circle cx="38" cy="46" r="9" fill="#1e1e1e" />
+        <circle cx="40" cy="43" r="3" fill="#ffffff" />
+        <circle cx="35" cy="49" r="1.5" fill="#ffffff" />
+        {/* Right Eye */}
+        <circle cx="82" cy="46" r="9" fill="#1e1e1e" />
+        <circle cx="84" cy="43" r="3" fill="#ffffff" />
+        <circle cx="79" cy="49" r="1.5" fill="#ffffff" />
+
+        {/* Watery Puddles at the bottom of the eyes */}
+        <path className="tear-puddle" d="M 29.5 46 A 8.5 8.5 0 0 0 46.5 46 Z" fill="#60a5fa" />
+        <path className="tear-puddle" d="M 73.5 46 A 8.5 8.5 0 0 0 90.5 46 Z" fill="#60a5fa" />
+
+        {/* Rosy Cheeks */}
+        <ellipse cx="30" cy="60" rx="6" ry="4" fill="#ff6b8b" opacity="0.3"/>
+        <ellipse cx="90" cy="60" rx="6" ry="4" fill="#ff6b8b" opacity="0.3"/>
+
+        {/* Closed, Sad, Quivering Pout */}
+        <g className="quivering-mouth">
+          <path d="M 54 77 Q 60 73 66 77" fill="none" stroke="#2a050c" strokeWidth="2.5" strokeLinecap="round" />
+        </g>
+      </g>
+    </svg>
+  </div>
+);
+
 export default function History() {
-  // Safe way to get local YYYY-MM-DD for the date picker default
   const [selectedDate, setSelectedDate] = useState(() => {
     const today = new Date();
     const offset = today.getTimezoneOffset() * 60000;
@@ -99,30 +141,20 @@ export default function History() {
   useEffect(() => {
     setIsLoading(true);
 
-    // // Create Start and End ISO strings for the selected date
-    // const startOfDay = new Date(selectedDate);
-    // startOfDay.setHours(0, 0, 0, 0);
-    
-    // const endOfDay = new Date(selectedDate);
-    // endOfDay.setHours(23, 59, 59, 999);
-
-    // 1. Split "YYYY-MM-DD" to force local timezone parsing
     const [year, month, day] = selectedDate.split('-').map(Number);
     
-    // 2. Note: Months are 0-indexed in JS (0 = Jan, 1 = Feb), so we do month - 1
     const startOfDay = new Date(year, month - 1, day);
     startOfDay.setHours(0, 0, 0, 0);
 
     const endOfDay = new Date(year, month - 1, day);
     endOfDay.setHours(23, 59, 59, 999);
 
-    // Query Firebase: Filter by date range, order by time (newest first)
     const eventsQuery = query(
       collection(db, 'cry_events'),
       where('detected_at', '>=', startOfDay.toISOString()),
       where('detected_at', '<=', endOfDay.toISOString()),
       orderBy('detected_at', 'desc'),
-      limit(200) // Increased limit to capture a full day's worth of events
+      limit(200) 
     );
 
     const unsubscribe = onSnapshot(eventsQuery, (querySnapshot) => {
@@ -136,14 +168,12 @@ export default function History() {
     });
 
     return () => unsubscribe();
-  }, [selectedDate]); // Re-run query whenever the date changes
+  }, [selectedDate]);
 
-  // Filter events locally by status tab
   const filteredEvents = filter === 'all'
     ? events
     : events.filter((e) => e.status === filter);
 
-  // Styling helpers
   const getStatusBadge = (status: BabyStatus) => {
     switch (status) {
       case 'sleeping': return 'bg-blue-100 text-blue-800 border-blue-200';
@@ -163,17 +193,14 @@ export default function History() {
     return new Date(dateString).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   };
 
-  // Analytics Calculations
   const cryingEvents = events.filter((e) => e.status === 'crying');
   
   const stats = {
     totalEvents: events.length,
     timesCried: cryingEvents.length,
-    // Sum all duration fields for crying events (fallback to 0 if undefined)
     totalCryingSeconds: cryingEvents.reduce((sum, e) => sum + (e.duration || 0), 0),
   };
 
-  // Convert seconds into a readable string (e.g., "5m 30s")
   const formatDuration = (totalSeconds: number) => {
     if (totalSeconds === 0) return '0m 0s';
     const m = Math.floor(totalSeconds / 60);
@@ -211,7 +238,7 @@ export default function History() {
         </div>
 
         {/* Analytics Summary Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-4">
           <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 flex items-center gap-4">
             <div className="p-4 bg-gray-50 rounded-2xl text-gray-600">
               <Activity className="w-8 h-8" />
@@ -245,10 +272,12 @@ export default function History() {
           </div>
         </div>
 
+        {/* ─── SAD WEEPING BABY ─── */}
+        <AnimatedCryingBaby />
+
         {/* Filter & Event List */}
-        <div className="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden">
+        <div className="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden mt-4">
           
-          {/* Tab Navigation */}
           <div className="flex border-b border-gray-100 bg-gray-50/50 p-4 gap-2 overflow-x-auto">
             <div className="flex items-center gap-2 mr-4 text-gray-400">
               <Filter className="w-4 h-4" />
@@ -269,7 +298,6 @@ export default function History() {
             ))}
           </div>
 
-          {/* List Content */}
           <div className="p-6">
             {isLoading ? (
               <div className="flex flex-col items-center justify-center py-12">
